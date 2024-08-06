@@ -97,14 +97,6 @@ const FileUpload = () => {
 
   const handleConvert = async () => {
 
-
-    //Key values for files | transName : [file, alt]
-    let objFiles = {};
-    for (let i=0; i<files.length(); i++){
-      
-    }
-
-    //
     const converted = await Promise.all(
       files.map(async (file) => {
         const formData = new FormData();
@@ -127,38 +119,6 @@ const FileUpload = () => {
     );
     setConvertedFiles(converted.filter(file => file !== null));
   };
-
-  function AltInput({values, changeAlt, files}) {
-
-    console.log(`files.length ${files.length}, values ${values}, files ${files}, type of files: ${typeof(files)}`);
-    const [name, setName] = useState("name#");
-    const input = files.map((file, i)=>{
-        <input
-          name={name.concat(i)}
-          value={values[i]}
-          type="text"
-          onChange={changeAlt}
-          files={files[i]}
-        />
-    })
-    console.log(input)
-    return(
-      <div>
-        {files.map((file, i)=>{
-        <input
-          name={name.concat(i)}
-          value={values[i]}
-          type="text"
-          onChange={changeAlt}
-          files={files[i]}
-        /> 
-    })}
-    </div>
-        
-    )
-  }
-
-
 
   return (
     <div>
@@ -187,12 +147,6 @@ const FileUpload = () => {
           onChange={(e) => setHeight(e.target.value)}
         />
       </label>
-      <AltInput
-        values={alts}
-        changeAlt={changeAlts}
-        files={files}
-
-      />
       <button onClick={handleConvert}>Convert</button>
       {convertedFiles.length > 0 && (
         <div>

@@ -23,7 +23,7 @@ app.post('/convert', upload.single('file'), async (req, res) => {
 
     const imageProcessor = new ImageProcessor(fileBuffer, options);
     const convertedImage = await imageProcessor.convertToWebP();
-
+    console.log(convertedImage);
     res.set('Content-Type', 'image/webp');
     res.send(convertedImage);
   } catch (error) {

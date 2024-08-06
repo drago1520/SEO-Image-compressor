@@ -26,7 +26,7 @@ class ImageProcessor {
           effort: 6, // Effort level (0-6), higher is slower but better compression
         })
         .toBuffer();
-
+      
       return convertedImage;
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
