@@ -20,7 +20,7 @@ export default function Layout() {
         <ImageGrid />
 
         <section>
-          <input type='file'  className='rounded-xl mr-2 text-lg bg-sky-400	' multiple/>
+          <input type='file' className='rounded-xl mr-2 text-lg bg-sky-400	' multiple/>
           <button type='button' className='rounded-xl px-4 border-2 border-zinc-100	p-1 text-lg mr-2 bg-yellow-500	' onClick={submitForm}>Convert</button>
           <button type='button' className='rounded-xl px-4 border-2 border-zinc-100	p-1 text-lg bg-lime-400	'>Download All!</button>
         </section>
