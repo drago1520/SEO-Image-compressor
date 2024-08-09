@@ -10,10 +10,21 @@ app.use(express.json());
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
-app.post('/convert', upload.single('files'), async (req, res) => {
+class UploadedFile{
+  constructor(file, options){
+    const {width, height, alt, format} = options
+    this.file = file
+    this.width = width
+    this.height = height
+    this.alt = alt
+    this.format = format
+  }
+}
+
+app.post('/convert', upload.array('files'), async (req, res) => {
   try {
     const { compression, width, height } = req.body;
-    const fileBuffer = req.file.buffer;
+    const fileBuffer = req.files[0].buffer;
 
     const options = {
       compression,
@@ -23,10 +34,8 @@ app.post('/convert', upload.single('files'), async (req, res) => {
 
     const imageProcessor = new ImageProcessor(fileBuffer, options);
     const convertedImage = await imageProcessor.convertToWebP();
-    console.log(`This is the converted image ${convertedImage}`);
     res.set('Content-Type', 'image/webp');
     res.send(convertedImage);
-    Buffer.fill(0);
   } catch (error) {
     console.error('Error converting file', error);
     res.status(500).send('Error converting file');
