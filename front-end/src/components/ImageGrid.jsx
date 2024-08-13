@@ -7,6 +7,7 @@ function ImageGrid() {
         <SingleImage />
         <SingleImage />
         <SingleImage />
+        <SingleImage />
     </div>
   )
 }
