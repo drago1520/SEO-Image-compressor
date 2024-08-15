@@ -4,6 +4,7 @@ import cors from 'cors';
 import archiver from 'archiver';
 import ImageProcessor from './ImageProcessor.js';
 import iconv from "iconv-lite"
+import fs from 'fs/promises';
 
 const app = express();
 app.use(cors());
@@ -11,12 +12,14 @@ app.use(express.json());
 
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-
+//Recieve .zip and all files individually -> download
+// 
 class FilesAndOptions{
   constructor(files, options){
     //All options === {alt,name,format,compression,width,height}
     //[{fileData: file, name: name, format, compression, alt, width, height}, {...}]
     this.error = "";
+    this.convertedImages = [];
     this.filesFixed = files;
     this.files = []; //Трябва да го задам като [] иначе push не работи
     if(files.length === 0 || options.length === 0) {
@@ -52,24 +55,67 @@ class FilesAndOptions{
       }  
     });
   }
+  getConvertedImages(){
+    return this.convertedImages;
+  }
+  getConvertedImage(name){
+    let convertedImage = this.convertedImages.find((image)=>image.name === name)
+    return convertedImage;
+  }
+  setConvertedImage(convertedImageBuffer, option){
+    let convertedImage = {file: convertedImageBuffer, ...option}
+    this.convertedImages.push(convertedImage);
+  }
+  setConvertedImages(convertedImages){
+    this.convertedImages = convertedImages;
+  }
+  
+  
 }
+  
+
 //OK Stop the program if(FilesAndOptions.error) и върни 500 със съобщението; Във front-end-а трябва да изпише на екрана.
 app.post('/convert', upload.array('files'), async (req, res) => {
   try {
     let options = JSON.parse(req.body.options)
-    console.log('req.body.options :', req.body.options);
     const filesAndOptions = new FilesAndOptions(req.files, options)    
     if(filesAndOptions.error){
       throw Error(filesAndOptions.error)
     }
-    const convertedImages = await Promise.all(filesAndOptions.files.map(async (file)=>{
+    
+    const conversionPromises = filesAndOptions.files.map(async (file) => {
       let processor = new ImageProcessor(file)
-      
-      return await processor.convert();
-    })) 
-    console.log('convertedImages :', convertedImages.length);
-    res.set('Content-Type', 'image/webp');
-    res.send(convertedImages);
+      let convertedImage = await processor.convert();
+      const {fileData, ...option} = file
+            
+      return {file: convertedImage, ...option, name: convertedImage.name};
+    });
+
+    const convertedImages = await Promise.all(conversionPromises);
+    
+    res.setHeader('Content-Type', 'multipart/form-data; boundary=--boundary');
+
+    // Create multipart response
+    let responseBody = '';
+    convertedImages.forEach((img, i) => {
+      responseBody += `--boundary\r\n`;
+      responseBody += `Content-Disposition: form-data; name="${img.name}"; filename="${img.name}"\r\n`;
+      if(img.format === "jpg") img.format = "jpeg"
+      responseBody += `Content-Type: image/${img.format}\r\n\r\n`;
+      responseBody += img.file.toString('binary');
+      responseBody += `\r\n`;
+    });
+    responseBody += '--endBoundary--';
+
+    // // Write responseBody to a file
+    try {
+      await fs.writeFile('test.txt', responseBody, { encoding: 'binary' });
+      console.log('File written successfully');
+    } catch (error) {
+      console.error('Error writing file', error);
+    }
+    res.send(responseBody);
+
   } catch (error) {
     console.error('Error converting file', error);
     res.status(500).send('Error converting file');

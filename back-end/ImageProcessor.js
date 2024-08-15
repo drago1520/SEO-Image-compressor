@@ -1,5 +1,7 @@
 import sharp from 'sharp';
-
+//# (Optional) use multi-threading for faster processing
+//# send .zip and all files individually
+//Ще е супер алт-овете в база данни
 class ImageProcessor {
   constructor(fileAndOptions) { //fileBuffer, option
     //{fileData: file, ...option}
@@ -11,6 +13,7 @@ class ImageProcessor {
     this.width = parseInt(option.width, 10)
     this.height = parseInt(option.height, 10)
     this.format = option.format
+    this.option.name = this.changeFileExtension(this.option.name, this.format)
     
   }
   async resizeImage(sharpImage){
@@ -26,7 +29,7 @@ class ImageProcessor {
   async toWebp(sharpImage){
     const convertedImage = await sharpImage.webp({
       quality: this.compression, // Compression level (0-100)
-      effort: 6, // Effort level (0-6), higher is slower but better compression
+      effort: 1, // Effort level (0-6), higher is slower but better compression
     })
     return convertedImage
   }
@@ -34,13 +37,13 @@ class ImageProcessor {
     const convertedImage = await sharpImage.png({
       compressionLevel: 9,
       quality: this.compression,
-      effort: 10
+      effort: 1
     })
     return convertedImage
   }
   async toJpg(sharpImage){
     const convertedImage = await sharpImage.jpeg({
-      compressionLevel: 9,
+      compressionLevel: 1,
       quality: this.compression
     })
     return convertedImage
@@ -50,7 +53,7 @@ class ImageProcessor {
     
     try {
       // Use sharp to process the image
-      let convertedImage1 = await sharp(this.fileBuffer)
+      let convertedImage1 = await await sharp(this.fileBuffer)
       let convertedImage2 = await this.resizeImage(convertedImage1)
       switch (this.format){
         case "webp": {
@@ -65,12 +68,34 @@ class ImageProcessor {
           break
         }
       }
-      let convertedImage4 = await convertedImage3.toBuffer();      
+      let convertedImage4 = await convertedImage3.toBuffer();
+      convertedImage4.name = this.option.name;      
       return convertedImage4;
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
   }
+
+  changeFileExtension(fileName, newExtension) {
+    // Extract the name of the file without the extension
+    const fileNameWithoutExtension = fileName.slice(0, fileName.lastIndexOf('.'));
+    
+    // Ensure the new extension starts with a dot
+    const extension = newExtension.startsWith('.') ? newExtension : `.${newExtension}`;
+    
+    // Combine the file name without extension with the new extension
+    const newFileName = `${fileNameWithoutExtension}${extension}`;
+    console.log('newFileName :', newFileName);
+    
+    return newFileName;
+  }
+  
+
+
+
+
+
+
 }
 
 export default ImageProcessor;
