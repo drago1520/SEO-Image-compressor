@@ -5,6 +5,7 @@ import archiver from 'archiver';
 import ImageProcessor from './ImageProcessor.js';
 import iconv from "iconv-lite"
 import fs from 'fs/promises';
+import ImageProcessorOld from './ImageProcessor-old.js';
 
 const app = express();
 app.use(cors());
@@ -78,21 +79,29 @@ class FilesAndOptions{
 app.post('/convert', upload.array('files'), async (req, res) => {
   try {
     let options = JSON.parse(req.body.options)
+    options = options.map((option)=>{
+      let width = Number(option.width)
+      let height = Number(option.height)
+      return {...option, width, height}
+    })
+    const imageProcessor = new ImageProcessorOld(req.files[0].buffer, options[0])
+    const convertedImageOld = await imageProcessor.convertToWebP()
+    
     const filesAndOptions = new FilesAndOptions(req.files, options)    
     if(filesAndOptions.error){
       throw Error(filesAndOptions.error)
     }
     
-    const conversionPromises = filesAndOptions.files.map(async (file) => {
+    const conversionPromises = filesAndOptions.files.map(async (file, i) => {      
       let processor = new ImageProcessor(file)
-      let convertedImage = await processor.convert();
-      const {fileData, ...option} = file
-            
-      return {file: convertedImage, ...option, name: convertedImage.name};
+      let convertedImage = await processor.convert();      
+      return convertedImage;
     });
 
     const convertedImages = await Promise.all(conversionPromises);
     
+    if(convertedImages[0].data===convertedImageOld) console.log("Same files");
+    else console.log("You fucked up the backend. Shoud've tested incrementally");
     res.setHeader('Content-Type', 'multipart/form-data; boundary=--boundary');
 
     // Create multipart response
@@ -102,18 +111,17 @@ app.post('/convert', upload.array('files'), async (req, res) => {
       responseBody += `Content-Disposition: form-data; name="${img.name}"; filename="${img.name}"\r\n`;
       if(img.format === "jpg") img.format = "jpeg"
       responseBody += `Content-Type: image/${img.format}\r\n\r\n`;
-      responseBody += img.file.toString('binary');
+      responseBody += convertedImageOld;
       responseBody += `\r\n`;
     });
     responseBody += '--endBoundary--';
 
     // // Write responseBody to a file
-    try {
-      await fs.writeFile('test.txt', responseBody, { encoding: 'binary' });
-      console.log('File written successfully');
-    } catch (error) {
-      console.error('Error writing file', error);
-    }
+    // try {
+    //   await fs.writeFile('test.txt', responseBody);
+    // } catch (error) {
+    //   console.error('Error writing file', error);
+    // }
     res.send(responseBody);
 
   } catch (error) {

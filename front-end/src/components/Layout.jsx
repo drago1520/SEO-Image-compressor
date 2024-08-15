@@ -32,14 +32,13 @@ export default function Layout() {
         method: 'POST',
         body: formData,
       })
-      //# convertImagesToUrls - да превърне всички снимки в url-и
+      //# Дали проблема е от изпратените данни?
+      //Или от client-side?
       const convertImageToUrls = async function(response) {
         if(response.ok){
-         const convertedFiles = readStream(response);
-         console.log('convertedFiles :', convertedFiles);
-         setUrls((await convertedFiles).map((convertedFile)=>convertedFile.url))
-         
-          
+         const convertedFiles = await readStream(response);
+         const convertedFilesUrls = convertedFiles.map((convertedFile)=>convertedFile.url)
+         setUrls([...urls, ...convertedFilesUrls])
           
         } else setErrorMsg("Response from server is not ok")
       }  
@@ -59,7 +58,7 @@ export default function Layout() {
         idTemp = Date.now();
         setId([...id, idTemp]);
         file.id = idTemp;
-      }, 2);
+      }, 10);
       return file
     })
     setFiles(filesWithId);
@@ -76,7 +75,9 @@ export default function Layout() {
 
  useEffect(() => {
   let key = Object.keys(bulkOptions)[0]
+  console.log('key :', key);
   let value = Object.values(bulkOptions)[0]
+  console.log('value :', value);
   files.forEach((file) => {
     if(key && value){
       updateOptions(file.name, files, defaultOptions, setOptions, options, false, key, value)
@@ -130,7 +131,7 @@ export default function Layout() {
           <h4 className='inline-block ml-2.5 mr-1'>Width:</h4>
           <input type='number' name='width' value={defaultOptions.width} onChange={handleBulkChange}/>
           <h4 className='inline-block ml-2.5 mr-1'>Height:</h4>
-          <input type='number' name='height' className='inline-block mx-1' value={defaultOptions.width} onChange={handleBulkChange}/>
+          <input type='number' name='height' className='inline-block mx-1' value={defaultOptions.height} onChange={handleBulkChange}/>
           <h4 className='inline-block ml-2.5 mr-1'>Format:</h4>
           <input type='radio' id='webp123' name='format' value='webp' className='inline-block mx-1' defaultChecked={defaultOptions.format === "webp"} onChange={handleBulkChange}/>
           <label htmlFor='webp123' className='mr-4'>Webp</label>

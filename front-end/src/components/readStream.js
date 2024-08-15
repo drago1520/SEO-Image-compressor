@@ -28,24 +28,31 @@ const fileParser = function(streamData, boundary) {
     let contentTypes = [];
     let urlsTemp = [];
     let files = []; 
-    parts.forEach((part, i) => {
+    parts.forEach((part) => {
         if(part){
             var [headerPart, fileContent] = part.split('\r\n\r\n');
             const headers = headerPart.split('\r\n');
             headers.forEach(header =>{
-                if(header.startsWith('Content-Disposition')){
-                    const filenameMatch = header.match(/filename="(.+?)"/);
-                    if(filenameMatch){
-                        filenNames.push(filenameMatch[1]) 
+                if(header){
+                console.log('header :', header);
+                    if(header.startsWith('Content-Disposition')){
+                        const filenameMatch = header.match(/filename="(.+?)"/);
+                        if(filenameMatch){
+                            filenNames.push(filenameMatch[1]) 
+                        }
+                    }else if (header.startsWith('Content-Type')){
+                        let contentType = header.split(': ')[1]
+                        contentTypes.push(contentType)
+                        console.log('pushed contentType');
+                        
                     }
-                }else if (header.startsWith('Content-Type')){
-                    contentTypes.push(header.split(': ')[1])
                 }
             });
 
             // Convert file content from binary string to a Uint8Array
             const binaryContent = new Uint8Array([...fileContent].map(char => char.charCodeAt(0)));
-            const blob = new Blob([binaryContent], { type: contentTypes[i] });
+            console.log('binaryContent :', ...fileContent);
+            const blob = new Blob([binaryContent], { type: contentTypes });
             urlsTemp.push(URL.createObjectURL(blob));
         }
     })

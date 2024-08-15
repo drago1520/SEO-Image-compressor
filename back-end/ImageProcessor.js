@@ -53,7 +53,7 @@ class ImageProcessor {
     
     try {
       // Use sharp to process the image
-      let convertedImage1 = await await sharp(this.fileBuffer)
+      let convertedImage1 =  sharp(this.fileBuffer)
       let convertedImage2 = await this.resizeImage(convertedImage1)
       switch (this.format){
         case "webp": {
@@ -68,9 +68,13 @@ class ImageProcessor {
           break
         }
       }
-      let convertedImage4 = await convertedImage3.toBuffer();
-      convertedImage4.name = this.option.name;      
-      return convertedImage4;
+      let convertedImage4 = {}
+      convertedImage4.data = await convertedImage3.toBuffer();
+      
+      convertedImage4.name = this.option.name;
+      const exportObj = {...this.option , ...convertedImage4}      
+      console.log('exportObj :', exportObj);
+      return {...exportObj};
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
@@ -85,7 +89,6 @@ class ImageProcessor {
     
     // Combine the file name without extension with the new extension
     const newFileName = `${fileNameWithoutExtension}${extension}`;
-    console.log('newFileName :', newFileName);
     
     return newFileName;
   }
