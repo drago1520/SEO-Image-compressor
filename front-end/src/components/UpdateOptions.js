@@ -85,7 +85,6 @@ const updateOptions = function(name, filesNew, defaultOptions, setOptions, optio
     modifyExistingOptions();
     //Използвам React useState
      setOptions(newOptions) 
-     console.log('newOptions :', newOptions);
   };
 
 export default updateOptions;

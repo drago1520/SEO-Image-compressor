@@ -5,6 +5,19 @@ class ImageProcessor {
     this.fileBuffer = fileBuffer;
     this.options = options;
   }
+  
+  changeFileExtension(fileName, newExtension) {
+    // Extract the name of the file without the extension
+    const fileNameWithoutExtension = fileName.slice(0, fileName.lastIndexOf('.'));
+    
+    // Ensure the new extension starts with a dot
+    const extension = newExtension.startsWith('.') ? newExtension : `.${newExtension}`;
+    
+    // Combine the file name without extension with the new extension
+    const newFileName = `${fileNameWithoutExtension}${extension}`;
+    
+    return newFileName;
+  }
 
   async convertToWebP() {
     const { compression, width, height } = this.options;

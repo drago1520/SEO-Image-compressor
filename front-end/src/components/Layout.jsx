@@ -1,13 +1,12 @@
 import ImageGrid from './ImageGrid';
 import { useEffect, useState } from 'react';
-import readStream from './readStream';
 import updateOptions from './UpdateOptions';
 
 export default function Layout() {
 
   const [files, setFiles] = useState([]);
   const [errorMsg, setErrorMsg] = useState("")
-  const [defaultOptions, setDefaultOptions] = useState({compression: 80, format: "webp", id: Date.now()})
+  const [defaultOptions, setDefaultOptions] = useState({compression: 80, format: "webp", id: Date.now(), width: "", height: ""})
   const [bulkOptions, setBulkOptions] = useState({})
   const [urls, setUrls] = useState([])
   const [id, setId] = useState([])
@@ -28,25 +27,21 @@ export default function Layout() {
     
     try {
 
-      let response = await fetch("http://localhost:5000/convert",{
-        method: 'POST',
-        body: formData,
-      })
-      //# Дали проблема е от изпратените данни?
-      //Или от client-side?
-      const convertImageToUrls = async function(response) {
-        if(response.ok){
-         const convertedFiles = await readStream(response);
-         const convertedFilesUrls = convertedFiles.map((convertedFile)=>convertedFile.url)
-         setUrls([...urls, ...convertedFilesUrls])
-          
-        } else setErrorMsg("Response from server is not ok")
-      }  
-      await convertImageToUrls(response);
-      
-    }catch (e) {
-       console.log(e);
-    }
+          let response = await fetch("http://localhost:5000/convert",{
+            method: 'POST',
+            body: formData,
+          })
+          // Дали проблема е от изпратените данни? - Да, но не само 
+          //Или от client-side? - Да
+          if(response.ok){
+            console.log('response.ok :', response.ok);
+              let url = URL.createObjectURL(await response.blob())
+              setUrls([url])
+            } else setErrorMsg("Response from server is not ok")   
+
+        }catch (e) {
+          console.log(e);
+        }
       
   }
   function handleFileChange(e) {
@@ -71,13 +66,14 @@ export default function Layout() {
   useEffect(() => {  
     // handleFileChange Test console.log(`Expected options with names: ${files.map(file => file.name).join(', ')}, and got these options: \n${files.map(option => option.name).join(', ')}`);
   }, [options])
-
+  useEffect(() => {  
+     console.log(urls)
+    // handleFileChange Test console.log(`Expected options with names: ${files.map(file => file.name).join(', ')}, and got these options: \n${files.map(option => option.name).join(', ')}`);
+  }, [urls])
 
  useEffect(() => {
   let key = Object.keys(bulkOptions)[0]
-  console.log('key :', key);
   let value = Object.values(bulkOptions)[0]
-  console.log('value :', value);
   files.forEach((file) => {
     if(key && value){
       updateOptions(file.name, files, defaultOptions, setOptions, options, false, key, value)
@@ -116,10 +112,10 @@ export default function Layout() {
           <input type='file' onChange={handleFileChange} className='rounded-xl mr-2 text-lg bg-sky-400	' multiple/>
           <button type='button' className='rounded-xl px-4 border-2 border-zinc-100	p-1 text-lg mr-2 bg-yellow-500	' onClick={submitForm}>Convert</button>
           <button type='button' className='rounded-xl px-4 border-2 border-zinc-100	p-1 text-lg mr-2 bg-lime-400	'>Download All!</button>
-          {
-            urls.map(url=>(<a href={url} key={url} download>Download here tmp</a>))
-          }
           <button type='button' className='rounded-xl px-4 border-2 border-zinc-100 p-1 text-lg bg-red-500' onClick={() => setUrls([])}>Reset URLs</button>
+          {
+            urls.map(url=>(<a href={url} key={url} className='rounded-xl px-4 border-2 border-zinc-100 p-1 text-lg bg-lime-400' download>Download here</a>))
+          }
           {/*  */}
           {/* map urls */}
         </section>

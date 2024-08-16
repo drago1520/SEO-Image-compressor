@@ -10,8 +10,13 @@ class ImageProcessor {
     this.fileBuffer = fileBuffer;
     this.option = option;
     this.compression = parseInt(option.compression, 10);
-    this.width = parseInt(option.width, 10)
-    this.height = parseInt(option.height, 10)
+    if (option.width && option.height){
+      let width = Number(option.width)
+      let height = Number(option.height)
+      this.width = parseInt(width, 10)
+      this.height = parseInt(height, 10)
+    }
+    
     this.format = option.format
     this.option.name = this.changeFileExtension(this.option.name, this.format)
     
@@ -73,7 +78,6 @@ class ImageProcessor {
       
       convertedImage4.name = this.option.name;
       const exportObj = {...this.option , ...convertedImage4}      
-      console.log('exportObj :', exportObj);
       return {...exportObj};
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
