@@ -16,7 +16,7 @@ export default function Layout() {
 
   async function submitForm(event){
     event.preventDefault();
-    //Mandatory name alt compression format
+    //Mandatory name compression format
     const formData = new FormData();
     let JSON_options = JSON.stringify(options)
     files.forEach((file)=>{
