@@ -9,7 +9,7 @@ import { performance } from 'perf_hooks';
 import path from 'path';
 import 'dotenv/config'
 import { promises as fs } from 'fs';
-
+import pLimit from 'p-limit';
 
 //! ВНИМАНИЕ: Приемам Файловете с 7bit encoding !//
 //~ Замества оригиналната снимка, ако се преубразува в същия формат 
@@ -68,12 +68,13 @@ class FilesAndOptionsHandler{
   }
 
   async convert(){
+    const limit = pLimit(5)
     this.urls = [];
     for (let i = 0; i < this.files.length; i++) { //можеше и с forEach, duh...
       const filePath = this.files[i].file.path;
       const options = this.files[i].options
       const imageProcessor = new ImageProcessorOld(filePath, options)
-      const convertedImageUrlTemp = await imageProcessor.convertToPNG()
+      const convertedImageUrlTemp = await imageProcessor.convert()
       this.urls.push(convertedImageUrlTemp)
     }
     if(this.urls.length !== this.files.length) throw new Error("Some files were not converted!")
@@ -131,7 +132,8 @@ class FilesAndOptionsHandler{
 
       return filenames
     } catch (e) {
-      
+        console.error('Error reading directory:', e);
+        throw e;  // Rethrow the error to handle it in the calling code
     }
   }
 
@@ -141,7 +143,6 @@ class FilesAndOptionsHandler{
 app.post('/convert', upload.array('files'), async (req, res) => {
   try {
     const start = performance.now();
-    console.log('start :', start);
     
     let filesAndOptions = new FilesAndOptionsHandler(req.files,req.body.options)        
     
@@ -153,6 +154,7 @@ app.post('/convert', upload.array('files'), async (req, res) => {
     let zipUrl = await filesAndOptions.createZip()
     const end = performance.now()
     const elapsedTime = end - start; // Time in milliseconds
+    await fs.writeFile('./performance.txt',toString(elapsedTime));
     console.log(`Elapsed time: ${elapsedTime} ms`);
  
     // // Create a JSON object
