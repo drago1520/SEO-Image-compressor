@@ -18,7 +18,7 @@ The most common cause of slow website is slow server, many http requests and **l
 
 ## Screenshots
 
-![App Screenshot](https://drive.google.com/file/d/1T4FxCrEdWM10fpzX57oGLQ37FCUudshi/preview)
+![App Screenshot](https://drive.google.com/uc?export=view&id=1T4FxCrEdWM10fpzX57oGLQ37FCUudshi)
 ## License
 As this is my project to only learn:
 - multipart/ form-data
