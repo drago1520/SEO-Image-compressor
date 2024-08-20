@@ -18,7 +18,7 @@ The most common cause of slow website is slow server, many http requests and **l
 
 ## Screenshots
 
-![App Screenshot](https://cdn.discordapp.com/attachments/797783853297041439/1273617970446336070/image.png?ex=66bf44aa&is=66bdf32a&hm=a56cbfeed1504c2d048969921797ade22b7538941b7dbf44b10e2538b8c8dc0a&)
+![App Screenshot](https://drive.google.com/file/d/1T4FxCrEdWM10fpzX57oGLQ37FCUudshi/preview)
 ## License
 As this is my project to only learn:
 - multipart/ form-data

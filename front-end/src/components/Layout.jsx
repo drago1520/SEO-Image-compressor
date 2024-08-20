@@ -6,7 +6,7 @@ export default function Layout() {
 
   const [files, setFiles] = useState([]);
   const [errorMsg, setErrorMsg] = useState("")
-  const [defaultOptions, setDefaultOptions] = useState({compression: 80, format: "webp", id: Date.now(), width: "", height: ""})
+  const [defaultOptions, setDefaultOptions] = useState({compression: 80, format: "png", id: Date.now(), width: "", height: ""})
   const [bulkOptions, setBulkOptions] = useState({})
   const [urls, setUrls] = useState([])
   const [id, setId] = useState([])
