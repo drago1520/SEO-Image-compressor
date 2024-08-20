@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Classes Documentation</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            background-color: #f4f4f4;
+            color: #333;
+            padding: 20px;
+        }
+        h1, h2, h3 {
+            color: #444;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .separator {
+            margin: 40px 0;
+            border-bottom: 2px solid #ddd;
+        }
+        .code-block {
+            background-color: #272822;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 20px 0;
+            overflow-x: auto;
+        }
+        .example {
+            background-color: #e0f7fa;
+            padding: 15px;
+            border-radius: 5px;
+            margin: 20px 0;
+        }
+        .emoji {
+            font-size: 1.5rem;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+
+<h1>📚 Classes Documentation</h1>
+
+<h2>📂 FilesAndOptionsHandler</h2>
+<p>The <strong>FilesAndOptionsHandler</strong> class is responsible for structuring files and options. It combines files and their corresponding options into a structured format.</p>
+<div class="code-block">
+    <pre>
+class FilesAndOptionsHandler extends Zipper {
+    constructor(requestFiles, requestOptions, logPerformace=true);
+    static async __getDirFilenames(folder);
+    async __logPerformance(action="", start=this.startTimer);
+    async convert();
+    async deleteFiles(filesToBeDeleted = this.files.map((file)=>file.file.path));
+}
+    </pre>
+</div>
+<p><strong>Constructor Parameters:</strong></p>
+<ul>
+    <li><strong>*requestFiles:</strong> Array of files comming from multer array (structure described below)</li>
+    <li><strong>*requestOptions:</strong> JSON string of options (structure of first element described below)</li>
+    <li><strong>logPerformace:</strong> Boolean to log performance time (default: true)</li>
+</ul>
+<p><strong>Files [] Structure:</strong></p>
+<ul>
+    <li><strong>*fieldname:</strong> 'files'</li>
+    <li><strong>*originalname:</strong> Original name of the file</li>
+    <li><strong>*encoding:</strong> '7bit'</li>
+    <li><strong>*mimetype:</strong> MIME type of the file</li>
+    <li><strong>*destination:</strong> File destination path</li>
+    <li><strong>*filename:</strong> Filename</li>
+    <li><strong>*path:</strong> Full file path</li>
+    <li><strong>*size:</strong> Size of the file in bytes</li>
+</ul>
+<p><strong>Options Structure (1 options obj per file):</strong></p>
+<ul>
+    <li><strong>*name:</strong> Name of the image</li>
+    <li><strong>*compression:</strong> Compression level (e.g., 80)</li>
+    <li><strong>*format:</strong> Format to convert to (e.g., 'png')</li>
+    <li><strong>width:</strong> Width of the image (e.g., 0 for original width)</li>
+    <li><strong>height:</strong> Height of the image (e.g., 0 for original height)</li>
+</ul>
+<div class="example">
+    <h3>Example structure for Options per file</h3>
+    <pre>
+    [
+        {
+          "name": "MTPH1416.jpg",
+          "compression": 80,
+          "format": "png",
+          "id": 1724185307441,
+          "width": "",
+          "height": ""
+        }
+    ] 
+    </pre>
+</div>
+<div class="example">
+    <h3>Example Usage:</h3>
+    <pre>
+const filesAndOptions = new FilesAndOptionsHandler(requestFiles, requestOptions);
+await filesAndOptions.convert();
+await filesAndOptions.createZip();
+await filesAndOptions.deleteFiles();
+    </pre>
+</div>
+
+<div class="separator"></div>
+
+<h2>🗜️ Zipper</h2>
+<p>The <strong>Zipper</strong> class is used to create a zip file from a list of file URLs. It extends functionality provided in the <em>FilesAndOptionsHandler</em> class. It is used only to provide single responsibility on the parent class.</p>
+<div class="code-block">
+    <pre>
+class Zipper {
+    async createZip(outputDir = process.env.FOLDER, filesUrl = this.urls);
+}
+    </pre>
+</div>
+<p><strong>Method:</strong></p>
+<ul>
+    <li><strong>createZip(outputDir, filesUrl):</strong> Creates a zip file from the given file URLs. The output directory is specified by <em>outputDir</em>, or defaults to environment variables.</li>
+</ul>
+
+<div class="separator"></div>
+
+<h2>🛠️ OptionsHandler</h2>
+<p>The <strong>OptionsHandler</strong> class provides utility functions to handle image file options, such as transliteration and renaming.</p>
+<div class="code-block">
+    <pre>
+class OptionsHandler {
+    transliterate(string="");
+}
+    </pre>
+</div>
+<p><strong>Method:</strong></p>
+<ul>
+    <li><strong>transliterate(string):</strong> Transliterates a string from Bulgarian to Latin characters and replaces spaces with hyphens.</li>
+</ul>
+
+
+<div class="separator"></div>
+
+<h2>🖼️ ImageProcessor</h2>
+<p>The <strong>ImageProcessor</strong> class is used to resize images, convert them to a specified format, and rename them as necessary. It extends <em>OptionsHandler</em>.</p>
+<div class="code-block">
+    <pre>
+class ImageProcessor extends OptionsHandler {
+    constructor(filePath, option = [], replaceOldFile = true);
+    async convert();
+}
+    </pre>
+</div>
+<p><strong>Constructor Parameters:</strong></p>
+<ul>
+    <li><strong>*filePath:</strong> The path to the image file to be processed.</li>
+    <li><strong>*option:</strong> Object containing options for processing the image, such as name, compression level, format, width, and height. The same object from Class <em>FilesAndOptionsHandler</em> for the file.</li>
+    <li><strong>replaceOldFile:</strong> Boolean to decide whether to replace the old file (default: true).</li>
+</ul>
+<p><strong>Methods:</strong></p>
+<ul>
+    <li><strong>convert():</strong> Converts the image based on the specified format (jpg, png, webp).</li>
+</ul>
+<div class="example">
+    <h3>Example Usage:</h3>
+    <pre>
+const imageProcessor = new ImageProcessor('path/to/image.jpg', {
+    name: 'няква снимка със знаци.jpg',
+    compression: 80,
+    format: 'png',
+    id: 1724185307441,
+    width: 0,
+    height: 0
+});
+await imageProcessor.convert();
+    </pre>
+</div>
+
+</body>
+</html>
