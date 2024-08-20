@@ -6,7 +6,7 @@ import iconv from "iconv-lite"
 import ImageProcessorOld from './ImageProcessor-old.js';
 import 'dotenv/config'
 import { performance } from 'perf_hooks';
-import path from 'path';
+import path, { resolve } from 'path';
 import 'dotenv/config'
 import { promises as fs } from 'fs';
 import pLimit from 'p-limit';
@@ -32,56 +32,8 @@ const storage = multer.diskStorage({
 })
 const upload = multer({ storage: storage });
 //Recieve .zip and all files individually -> download
-
-class FilesAndOptionsHandler{
-  //целта на класа е да придаде структура на файловете и опциите. Цел: [{file:req.files[i], options: options}, file2, file3,...]
-  
-  constructor(requestFiles, requestOptions){
-    if (!requestFiles || !Array.isArray(requestFiles)) {
-      throw new Error('Invalid input: requestFiles must be an array of files.');
-    }
-    if (!requestOptions || typeof requestOptions !== 'string') {
-      throw new Error('Invalid input: requestOptions must be a JSON string.');
-    }
-
-    let options = JSON.parse(requestOptions).map((option)=>{
-      let width = Number(option.width)
-      let height = Number(option.height)
-      return {...option, width, height}
-    })
-
-    this.files = requestFiles.map((file)=>{
-      if(file.encoding === '7bit'){
-        file.originalname = convertUtf8(file.originalname)
-      }
-
-      const [optionsForThisFile] = options.filter(option=>{ //{}
-        if(option.name === file.originalname) return true
-        else return false
-      })
-      if (optionsForThisFile.length === 0) {
-        throw new Error(`Warning: No matching options found for file ${file.originalname}.`);
-      }
-      return {file: file, options: optionsForThisFile}
-    })
-
-  }
-
-  async convert(){
-    const limit = pLimit(5)
-    this.urls = [];
-    for (let i = 0; i < this.files.length; i++) { //можеше и с forEach, duh...
-      const filePath = this.files[i].file.path;
-      const options = this.files[i].options
-      const imageProcessor = new ImageProcessorOld(filePath, options)
-      const convertedImageUrlTemp = await imageProcessor.convert()
-      this.urls.push(convertedImageUrlTemp)
-    }
-    if(this.urls.length !== this.files.length) throw new Error("Some files were not converted!")
-    return this.urls
-  }
-
-   async createZip(outputDir = process.env.FOLDER, filesUrl = this.urls){
+class Zipper{
+  async createZip(outputDir = process.env.FOLDER, filesUrl = this.urls, deleteOriginalFiles = true){
     if(outputDir === process.env.FOLDER && process.env.SAVE_FOLDER) outputDir = process.env.SAVE_FOLDER;
     //Отваря се нов, несъществуващ файл; Ако съществува, ще бъде отворен за запис
     let dirFileNames = await FilesAndOptionsHandler.getDirFilenames(outputDir);
@@ -98,7 +50,7 @@ class FilesAndOptionsHandler{
     })
 
     //Инициализира се Stream, който да ползваш, за да пишеш във файла
-    const outputStream = output.createWriteStream();
+    const outputStream = output.createWriteStream()
     //Archiver (zip) ще помпи към този стрийм
     archive.pipe(outputStream)
 
@@ -123,9 +75,47 @@ class FilesAndOptionsHandler{
     await archive.finalize();
     //Затвори файла (close the file descriptor - освободи го), за да може да се ползва за нещо друго.
     await output.close();
+    if(deleteOriginalFiles && !this.isFilesDeleted) this.deleteFiles()
+    await this.logPerformance("convert")
     return zipUrl
   }
+}
 
+class FilesAndOptionsHandler extends Zipper{
+  //целта на класа е да придаде структура на файловете и опциите. Цел: [{file:req.files[i], options: options}, file2, file3,...]
+  
+  constructor(requestFiles, requestOptions, logPerformace=true){
+    super(requestFiles,requestOptions,logPerformace=true)
+    if (!requestFiles || !Array.isArray(requestFiles)) {
+      throw new Error('Invalid input: requestFiles must be an array of files.');
+    }
+    if (!requestOptions || typeof requestOptions !== 'string') {
+      throw new Error('Invalid input: requestOptions must be a JSON string.');
+    }
+    if(logPerformace) this.startTimer = performance.now()
+    this.isFilesDeleted = false
+    let options = JSON.parse(requestOptions).map((option)=>{
+      let width = Number(option.width)
+      let height = Number(option.height)
+      return {...option, width, height}
+    })
+
+    this.files = requestFiles.map((file)=>{
+      if(file.encoding === '7bit'){
+        file.originalname = convertUtf8(file.originalname)
+      }
+
+      const [optionsForThisFile] = options.filter(option=>{ //{}
+        if(option.name === file.originalname) return true
+        else return false
+      })
+      if (optionsForThisFile.length === 0) {
+        throw new Error(`Warning: No matching options found for file ${file.originalname}.`);
+      }
+      return {file: file, options: optionsForThisFile}
+    })
+
+  }
   static async getDirFilenames(folder){
     try {
       const filenames = await fs.readdir(folder);
@@ -135,6 +125,43 @@ class FilesAndOptionsHandler{
         console.error('Error reading directory:', e);
         throw e;  // Rethrow the error to handle it in the calling code
     }
+  }
+  async logPerformance(action="",start = this.startTimer){
+    if(!action) return
+    const end = performance.now()
+    const elapsedTime = end - start; // Time in milliseconds
+    let text = `Elapsed time from start to finish for ${action} is ${elapsedTime}ms`
+    await fs.appendFile('./performance.txt',toString(text));
+    console.log(`Elapsed time: ${elapsedTime} ms for action: ${action}`);
+  }
+
+  async convert(deleteOriginalFiles = true){
+    const limit = pLimit(5)
+    this.urls = [];
+    console.log("Convertion started!")
+    this.urls = await Promise.all(this.files.map(file =>
+      limit(async()=>{
+        const filePath = file.file.path;
+        const fileName = file.file.originalname;
+        const options = file.options;
+        const imageProcessor = new ImageProcessorOld(filePath,options)
+        let url =  await imageProcessor.convert();
+        fs.appendFile("./convertedNames.txt", fileName).catch(err=>{console.error("Error logging filename: ", err)})
+        return url
+      })
+    ))
+    if(this.urls.length !== this.files.length) throw new Error("Some files were not converted!")
+    if(deleteOriginalFiles && !this.isFilesDeleted) this.deleteFiles()
+    await this.logPerformance("convert")
+
+    return this.urls
+  }
+
+  async deleteFiles(filesToBeDeleted = this.files.map((file)=>file.file.path)){
+    filesToBeDeleted.forEach((url)=>{
+      fs.unlink(url).catch(err=>{console.error("Error deleting file: ", err)})
+      this.isFilesDeleted = true
+    })
   }
 
 }
@@ -150,18 +177,15 @@ app.post('/convert', upload.array('files'), async (req, res) => {
     //   const imageProcessor = new ImageProcessorOld(fileAndOptions.file.path, fileAndOptions.options)
     //   const convertedImageUrlTemp = await imageProcessor.convertToPNG()
     // })
+    
     let urls = await filesAndOptions.convert() 
     let zipUrl = await filesAndOptions.createZip()
-    const end = performance.now()
-    const elapsedTime = end - start; // Time in milliseconds
-    await fs.writeFile('./performance.txt',toString(elapsedTime));
-    console.log(`Elapsed time: ${elapsedTime} ms`);
- 
+
     // // Create a JSON object
     // res.set('Content-Type', 'image/jpeg'); //#Изпращам JSON с линкове
     // res.send(convertedImageOld)
     // console.log("Sent!")
-
+    
   } catch (error) {
     console.error('Error converting file', error);
     res.status(500).send('Error converting file');
