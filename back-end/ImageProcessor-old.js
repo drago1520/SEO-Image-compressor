@@ -4,6 +4,7 @@ import path from 'path';
 import 'dotenv/config'
 
 
+
 class OptionsHandler{
   transliterate(string=""){
     if (!string){
@@ -55,7 +56,7 @@ class OptionsHandler{
 
 class ImageProcessor extends OptionsHandler {//This class is used to resize images and convert them to specified format and rename them 
 
-   constructor(filePath = process.env.FOLDER, option) {
+   constructor(filePath = process.env.FOLDER, option = [], replaceOldFile = true) {
     super();
     this.filePath = filePath
     this.folder = path.dirname(this.filePath)
@@ -91,7 +92,7 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
       })
       await processorWebp.toFile(outputPathTemp);
 
-      return await this.#saveFile(outputPathTemp,'webp')
+      return await this.#saveFile(outputPathTemp,'webp', outputFileNameTemp)
 
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
@@ -109,11 +110,11 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
       const processorPNG = await processorResized.png({
         compressionLevel: 9,
         quality: this.compression,
-        effort: 1
+        effort: 10
       })
 
       await processorPNG.toFile(outputPathTemp);
-      return await this.#saveFile(outputPathTemp,'png')
+      return await this.#saveFile(outputPathTemp,'png', outputFileNameTemp)
 
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
@@ -129,19 +130,17 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
       const processor =  this.#sharpInstance()
       const processorResized = await this.resizeImage(processor);
       const processorJPG = await processorResized.jpeg({
-        compressionLevel: 1,
         quality: this.compression
       })
 
       await processorJPG.toFile(outputPathTemp);
-      return await this.#saveFile(outputPathTemp, 'jpg')
+      return await this.#saveFile(outputPathTemp, 'jpg', outputFileNameTemp)
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
   }
 
   #sharpInstance(){
-    console.log('this.filePath :', this.filePath);
 
     return sharp(this.filePath)
   }
@@ -164,35 +163,30 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
     return fileNameWithoutExtension;
   }
 
-  async #saveFile(filePathTemp='', extention=''){
+  async #saveFile( filePathTemp='', extention='', fileNameTemp=""){
     try {
-      const flushFile = async function() { //filePathTemp
-      
-          // Open the output file to get the file descriptor
-          const fileHandle = await fs.open(filePathTemp, 'r+'); // 'r+' mode allows reading and writing
-      
-          // Flush the file to disk to ensure data is physically written
-          await fileHandle.sync();
-          console.log('Data flushed to disk successfully.');
-      
-          // Close the file
-          await fileHandle.close();
-        console.log('File closed successfully.');
+      let outputPath;
 
-      };
-
-      const renameTempFIle = async function() { //filePathTemp && extention
+      const renameTempFIle = async function() { //filePathTemp && extention && fileNameTemp
         if(!extention || !filePathTemp) throw new Error('No extention or filePath provided for saving the file!')
-        const outputPath = `${filePathTemp}.${extention}`
+        if(process.env.SAVE_FOLDER) {outputPath = `${process.env.SAVE_FOLDER}/${fileNameTemp}.${extention}`}
+        else {outputPath = `${filePathTemp}.${extention}`}
         await fs.rename(filePathTemp, outputPath)
         return outputPath
       };
 
-      await flushFile();
-      const outputPath = await renameTempFIle()
+      outputPath = await renameTempFIle()
       
       return outputPath
     } catch (error) {
+      if(error.syscall === 'rename' && error.errno === -4058){
+        await fs.mkdir(process.env.SAVE_FOLDER, {recursive: true})
+        let outputPath = "";
+        if(process.env.SAVE_FOLDER) {outputPath = `${process.env.SAVE_FOLDER}/${fileNameTemp}.${extention}`}
+        else {outputPath = `${filePathTemp}.${extention}`}
+        await fs.rename(filePathTemp, outputPath)
+        return outputPath
+      }
       console.error('Error processing or flushing image:', error);
     }
   }
