@@ -56,7 +56,7 @@ class OptionsHandler{
 
 class ImageProcessor extends OptionsHandler {//This class is used to resize images and convert them to specified format and rename them 
 
-   constructor(filePath = process.env.FOLDER, option = [], replaceOldFile = true) {
+   constructor(filePath, option = [], replaceOldFile = true) {
     super();
     this.filePath = filePath
     this.folder = path.dirname(this.filePath)
@@ -69,7 +69,7 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
     this.format = format
     this.fullName = option.name
     if(alt) this.name = this.transliterate(name)
-    else this.name = this.extractFileName(name)
+    else this.name = this.__extractFileName(name)
    
     if (option.width && option.height){
       this.width = parseInt(Number(option.width), 10)
@@ -77,36 +77,36 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
     }
   }
 
-  async convertToWebP() {
+  async __convertToWebP() {
 
     try {
       // Use sharp to process the image
       const outputFileNameTemp = this.name
       const outputPathTemp = `${this.folder}\\${outputFileNameTemp}`
 
-      const processor =  this.sharpInstance()
-      const processorResized = await this.resizeImage(processor);
+      const processor =  this.__sharpInstance()
+      const processorResized = await this.__resizeImage(processor);
       const processorWebp = await processorResized.webp({
         quality: this.compression, // Compression level (0-100)
         effort: 6, // Effort level (0-6), higher is slower but better compression
       })
       await processorWebp.toFile(outputPathTemp);
 
-      return await this.saveFile(outputPathTemp,'webp', outputFileNameTemp)
+      return await this.__saveFile(outputPathTemp,'webp', outputFileNameTemp)
 
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
   }
 
-  async convertToPNG() {
+  async __convertToPNG() {
     try {
       const outputFileNameTemp = this.name
       const outputPathTemp = `${this.folder}\\${outputFileNameTemp}`
 
       // Use sharp to process the image
-      const processor =  this.sharpInstance()
-      const processorResized = await this.resizeImage(processor);
+      const processor =  this.__sharpInstance()
+      const processorResized = await this.__resizeImage(processor);
       const processorPNG = await processorResized.png({
         compressionLevel: 9,
         quality: this.compression,
@@ -114,27 +114,27 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
       })
 
       await processorPNG.toFile(outputPathTemp);
-      return await this.saveFile(outputPathTemp,'png', outputFileNameTemp)
+      return await this.__saveFile(outputPathTemp,'png', outputFileNameTemp)
 
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
   }
 
-  async convertToJPG() {
+  async __convertToJPG() {
     try {
       const outputFileNameTemp = this.name
       const outputPathTemp = `${this.folder}\\${outputFileNameTemp}`
       
       // Use sharp to process the image
-      const processor =  this.sharpInstance()
-      const processorResized = await this.resizeImage(processor);
+      const processor =  this.__sharpInstance()
+      const processorResized = await this.__resizeImage(processor);
       const processorJPG = await processorResized.jpeg({
         quality: this.compression
       })
 
       await processorJPG.toFile(outputPathTemp);
-      return await this.saveFile(outputPathTemp, 'jpg', outputFileNameTemp)
+      return await this.__saveFile(outputPathTemp, 'jpg', outputFileNameTemp)
     } catch (error) {
       throw new Error('Error converting image: ' + error.message);
     }
@@ -142,20 +142,20 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
   async convert(){
   switch(this.format){
     case 'jpg':
-      return this.convertToJPG()
+      return this.__convertToJPG()
     case 'png':
-      return this.convertToPNG()
+      return this.__convertToPNG()
     case 'webp':
-      return this.convertToWebP()
+      return this.__convertToWebP()
   }
   }
 
-  sharpInstance(){
+  __sharpInstance(){
 
     return sharp(this.filePath)
   }
 
-  async resizeImage(processor){
+  async __resizeImage(processor){
 
     if(this.width && this.height){
       var convertedImage =  await processor.resize(this.width, this.height, {
@@ -166,14 +166,14 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
     return convertedImage
   }
 
-  extractFileName(fileName) {
+  __extractFileName(fileName) {
     // Extract the name of the file without the extension
     const fileNameWithoutExtension = fileName.slice(0, fileName.lastIndexOf('.'));
     
     return fileNameWithoutExtension;
   }
 
-  async saveFile( filePathTemp='', extention='', fileNameTemp=""){
+  async __saveFile( filePathTemp='', extention='', fileNameTemp=""){
     try {
       let outputPath;
 

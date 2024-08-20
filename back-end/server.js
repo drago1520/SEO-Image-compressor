@@ -33,10 +33,10 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 //Recieve .zip and all files individually -> download
 class Zipper{
-  async createZip(outputDir = process.env.FOLDER, filesUrl = this.urls, deleteOriginalFiles = true){
+  async createZip(outputDir = process.env.FOLDER, filesUrl = this.urls){
     if(outputDir === process.env.FOLDER && process.env.SAVE_FOLDER) outputDir = process.env.SAVE_FOLDER;
     //Отваря се нов, несъществуващ файл; Ако съществува, ще бъде отворен за запис
-    let dirFileNames = await FilesAndOptionsHandler.getDirFilenames(outputDir);
+    let dirFileNames = await FilesAndOptionsHandler.__getDirFilenames(outputDir);
     let zipUrl = `${outputDir}/ready.zip`
     for(let i=0; dirFileNames.includes(zipUrl); i++){
       zipUrl=`${outputDir}/ready${i}.zip`
@@ -75,8 +75,7 @@ class Zipper{
     await archive.finalize();
     //Затвори файла (close the file descriptor - освободи го), за да може да се ползва за нещо друго.
     await output.close();
-    if(deleteOriginalFiles && !this.isFilesDeleted) this.deleteFiles()
-    await this.logPerformance("convert")
+    await this.__logPerformance("convert")
     return zipUrl
   }
 }
@@ -116,7 +115,7 @@ class FilesAndOptionsHandler extends Zipper{
     })
 
   }
-  static async getDirFilenames(folder){
+  static async __getDirFilenames(folder){
     try {
       const filenames = await fs.readdir(folder);
 
@@ -126,7 +125,7 @@ class FilesAndOptionsHandler extends Zipper{
         throw e;  // Rethrow the error to handle it in the calling code
     }
   }
-  async logPerformance(action="",start = this.startTimer){
+  async __logPerformance(action="",start = this.startTimer){
     if(!action) return
     const end = performance.now()
     const elapsedTime = end - start; // Time in milliseconds
@@ -135,7 +134,7 @@ class FilesAndOptionsHandler extends Zipper{
     console.log(`Elapsed time: ${elapsedTime} ms for action: ${action}`);
   }
 
-  async convert(deleteOriginalFiles = true){
+  async convert(){
     const limit = pLimit(5)
     this.urls = [];
     console.log("Convertion started!")
@@ -144,6 +143,7 @@ class FilesAndOptionsHandler extends Zipper{
         const filePath = file.file.path;
         const fileName = file.file.originalname;
         const options = file.options;
+        console.log('options :', options);
         const imageProcessor = new ImageProcessorOld(filePath,options)
         let url =  await imageProcessor.convert();
         fs.appendFile("./convertedNames.txt", fileName).catch(err=>{console.error("Error logging filename: ", err)})
@@ -151,8 +151,7 @@ class FilesAndOptionsHandler extends Zipper{
       })
     ))
     if(this.urls.length !== this.files.length) throw new Error("Some files were not converted!")
-    if(deleteOriginalFiles && !this.isFilesDeleted) this.deleteFiles()
-    await this.logPerformance("convert")
+    await this.__logPerformance("convert")
 
     return this.urls
   }
@@ -180,6 +179,7 @@ app.post('/convert', upload.array('files'), async (req, res) => {
     
     let urls = await filesAndOptions.convert() 
     let zipUrl = await filesAndOptions.createZip()
+    await filesAndOptions.deleteFiles();
 
     // // Create a JSON object
     // res.set('Content-Type', 'image/jpeg'); //#Изпращам JSON с линкове
