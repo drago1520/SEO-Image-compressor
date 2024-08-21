@@ -185,7 +185,11 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
         return outputPath
       };
 
-      const compressPng = async (sharpImagePath=outputPath, compressedImageDir = path.dirname(outputPath)) =>{
+      const compressPng = async (sharpImagePath, compressedImageDir = path.dirname(outputPath)) =>{
+        if(!sharpImagePath || !outputPath) throw new Error("No input path provided for png compression!")
+        else if(!sharpImagePath) sharpImagePath = outputPath
+        if(!compressedImageDir) compressedImageDir = path.dirname(sharpImagePath)
+        
         await imagemin([sharpImagePath], {
           destination: compressedImageDir,
           plugins: [
@@ -195,12 +199,15 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
               strip:true
             })
           ]
-        });
-        
-      }
+        })
+      };
 
       outputPath = await renameTempFIle()
-      
+      if(this.format === "png" && compress) { 
+        console.log("Compressing..." )
+        await compressPng(outputPath) 
+      }  
+
       return outputPath
     } catch (error) {
       if(error.syscall === 'rename' && error.errno === -4058){
