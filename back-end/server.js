@@ -179,7 +179,7 @@ app.post('/convert', upload.array('files'), async (req, res) => {
     
     let urls = await filesAndOptions.convert() 
     let zipUrl = await filesAndOptions.createZip()
-    await filesAndOptions.deleteFiles();
+    // await filesAndOptions.deleteFiles();
 
     // // Create a JSON object
     // res.set('Content-Type', 'image/jpeg'); //#Изпращам JSON с линкове

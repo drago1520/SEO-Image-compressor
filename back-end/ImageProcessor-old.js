@@ -1,9 +1,9 @@
 import sharp from 'sharp';
-import { promises as fs } from 'fs';
+import { promises as fs, rename } from 'fs';
 import path from 'path';
 import 'dotenv/config'
-
-
+import imagemin from 'imagemin';
+import imageminPngquant from "imagemin-pngquant"
 
 class OptionsHandler{
   transliterate(string=""){
@@ -173,7 +173,7 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
     return fileNameWithoutExtension;
   }
 
-  async __saveFile( filePathTemp='', extention='', fileNameTemp=""){
+  async __saveFile( filePathTemp='', extention=this.format, fileNameTemp=this.name, compress=true){
     try {
       let outputPath;
 
@@ -184,6 +184,20 @@ class ImageProcessor extends OptionsHandler {//This class is used to resize imag
         await fs.rename(filePathTemp, outputPath)
         return outputPath
       };
+
+      const compressPng = async (sharpImagePath=outputPath, compressedImageDir = path.dirname(outputPath)) =>{
+        await imagemin([sharpImagePath], {
+          destination: compressedImageDir,
+          plugins: [
+            imageminPngquant({
+              quality: [0.2, 0.3],
+              speed: 1,
+              strip:true
+            })
+          ]
+        });
+        
+      }
 
       outputPath = await renameTempFIle()
       
